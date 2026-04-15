@@ -954,7 +954,7 @@ class LocoEnv:
         self.batched_d_gains[env_ids, :] = kd_scales * self.d_gains[None, :]
 
     def _randomize_link_length(self, env_ids):
-        min_scale, max_scale = self.env_cfg['link_length_range']  # e.g., [0.6, 1.1]
+        min_scale, max_scale = self.env_cfg['link_length_range']  # e.g., [0.5, 1.1]
         link_names = self.env_cfg['link_names_to_randomize']  # e.g., ['fl_k', 'rl_k', 'rr_k', 'fr_k']
         
         if not link_names:

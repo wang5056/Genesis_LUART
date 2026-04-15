@@ -136,7 +136,7 @@ def get_cfgs():
 
         # domain randomization
         'randomize_link_length': True,
-        'link_length_range': [0.6, 1.1],
+        'link_length_range': [0.5, 1.1],
         'link_names_to_randomize': ['fl_k', 'rl_k', 'rr_k', 'fr_k'],
         'randomize_friction': True,
         'friction_range': [0.2, 1.5],
@@ -203,11 +203,11 @@ def get_cfgs():
             'ang_vel_xy': -0.05,          # Unchanged
             'orientation': -5.0,          # Reduce from -10.0 to -5.0 for more flexibility
             'base_height': -30.0,         # Reduce from -40.0 to -10.0 to allow height variation
-            'torques': -0.00008,           # Unchanged   -0.0002,
+            'torques': -0.001,           # Unchanged   -0.0008,
             'collision': -1.0,            # Unchanged
-            'dof_vel': -0.0,              # Unchanged
+            'dof_vel': -1e-8,              # Unchanged
             'dof_acc': -2.5e-7,           # Unchanged
-            'feet_air_time': 0.2,         # Increase from 1.0 to 2.5 to reward high leg lifts
+            'feet_air_time': 0.3,         # Increase from 1.0 to 2.5 to reward high leg lifts
             'action_rate': -0.01,         # Unchanged
         },
     }
