@@ -37,6 +37,30 @@ class RigidSolver(Solver):
 
         self._cur_step = -1
 
+    def set_links_geometry_scale(self, scale_factors, link_indices, env_ids):
+        scale_factors = torch.as_tensor(scale_factors, dtype=gs.tc_float, device=gs.device).contiguous()
+        env_ids = torch.as_tensor(env_ids, dtype=gs.tc_int, device=gs.device).contiguous()
+        
+        if scale_factors.shape != (len(env_ids), len(link_indices)):
+            gs.raise_exception(f"Expected scale_factors shape ({len(env_ids)}, {len(link_indices)}), got {scale_factors.shape}")
+        
+        if not link_indices:
+            gs.raise_exception("link_indices cannot be empty")
+        
+        geom_indices = []
+        for link_idx in link_indices:
+            for geom in self.geoms:
+                if geom.link.idx == link_idx:
+                    geom_indices.append(geom.idx)
+                    break
+        
+        if len(geom_indices) != len(link_indices):
+            gs.raise_exception("Not all links have associated geoms")
+        
+        geom_indices = torch.tensor(geom_indices, dtype=gs.tc_int, device=gs.device).contiguous()
+        self._kernel_set_geoms_scale(scale_factors, geom_indices, env_ids)
+        self._kernel_update_geoms_aabb_tight(geom_indices, env_ids)
+
     def add_entity(self, idx, material, morph, surface, visualize_contact):
         if isinstance(material, gs.materials.Avatar):
             entity_class = AvatarEntity
@@ -3471,6 +3495,43 @@ class RigidSolver(Solver):
         for i_g_ in ti.ndrange(geoms_idx.shape[0]):
             self.geoms_info[geoms_idx[i_g_]].friction = friction[i_g_]
 
+
+    @ti.kernel
+    def _kernel_set_geoms_scale(
+        self,
+        scale_factors: ti.types.ndarray(),
+        geom_indices: ti.types.ndarray(),
+        env_ids: ti.types.ndarray(),
+    ):
+        ti.loop_config(serialize=self._para_level < gs.PARA_LEVEL.PARTIAL)
+        for i_g_, i_b_ in ti.ndrange(geom_indices.shape[0], env_ids.shape[0]):
+            i_g = geom_indices[i_g_]
+            i_b = env_ids[i_b_]
+            if self.geoms_info[i_g].type == gs.GEOM_TYPE.CYLINDER:
+                scale = scale_factors[i_b_, 0]
+                for i_v in range(self.geoms_info[i_g].vert_start, self.geoms_info[i_g].vert_end):
+                    # Assuming cylinder length is along z-axis, scale z-coordinate
+                    self.verts_info[i_v].init_pos[2] *= scale
+
+    @ti.kernel
+    def _kernel_update_geoms_aabb_tight(self):
+        """
+        Recompute tight AABBs for all geoms using updated vertices.
+        """
+        ti.loop_config(serialize=self._para_level < gs.PARA_LEVEL.PARTIAL)
+        for i_g, i_b in ti.ndrange(self.n_geoms, self._B):
+            self._func_update_verts_for_geom(i_g, i_b)
+            
+            g_info = self.geoms_info[i_g]
+            lower = self.verts_state[g_info.vert_start, i_b].pos
+            upper = self.verts_state[g_info.vert_start, i_b].pos
+            
+            for i_v in range(g_info.vert_start, g_info.vert_end):
+                lower = ti.min(lower, self.verts_state[i_v, i_b].pos)
+                upper = ti.max(upper, self.verts_state[i_v, i_b].pos)
+            
+            self.geoms_state[i_g, i_b].aabb_min = lower
+            self.geoms_state[i_g, i_b].aabb_max = upper
     # ------------------------------------------------------------------------------------
     # ----------------------------------- properties -------------------------------------
     # ------------------------------------------------------------------------------------
@@ -3609,3 +3670,5 @@ class RigidSolver(Solver):
     @property
     def max_collision_pairs(self):
         return self._max_collision_pairs
+    
+    
