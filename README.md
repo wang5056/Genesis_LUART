@@ -107,6 +107,16 @@ docker run --gpus all --rm -it \
 genesis
 ```
 
+## LUART Training
+
+Training scripts and environments for the LUART quadruped locomotion work live in:
+
+```
+examples/locomotion/LUART/Training/height_files/
+```
+
+This directory contains the locomotion environments (`locomotion_env_height*.py`), reward wrappers, training entry points (`train_walk_tt_height_*.py`), and the evaluation script (`eval_backflip_printout_joystick_height.py`).
+
 ## Documentation
 
 Comprehensive documentation is available in [English](https://genesis-world.readthedocs.io/en/latest/user_guide/index.html), [Chinese](https://genesis-world.readthedocs.io/zh-cn/latest/user_guide/index.html), and [Japanese](https://genesis-world.readthedocs.io/ja/latest/user_guide/index.html). This includes detailed installation steps, tutorials, and API references.
